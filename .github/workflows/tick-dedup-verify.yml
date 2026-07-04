@@ -1,0 +1,33 @@
+# TEMPORARY verification workflow for the perf/endreadable-tick-dedup branch.
+# Fork-only CI evidence that the endReadableNT tick-dedup patch builds and
+# passes the streams test subset. NOT for the upstream nodejs/node PR --
+# delete this file (or drop its commit) before opening the PR upstream.
+name: tick-dedup-verify
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - perf/endreadable-tick-dedup
+
+concurrency:
+  group: tick-dedup-verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test-streams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: ./configure
+      - name: Build
+        run: make -j$(nproc)
+      - name: Run new tick-dedup test explicitly
+        run: python3 tools/test.py --timeout=120 test/parallel/test-stream-readable-end-tick-dedup.js
+      - name: Run streams test subset
+        run: python3 tools/test.py -J --timeout=120 test/parallel/test-stream*
